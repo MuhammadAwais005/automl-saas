@@ -1,0 +1,11 @@
+venv/
+node_modules/
+__pycache__/
+*.sqlite3
+.env
+.DS_Store
+media/uploads/
+media/processed/
+media/plots/
+media/models/
+dist/
