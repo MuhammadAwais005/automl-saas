@@ -1,6 +1,5 @@
 from django.urls import path
-from .views import ProcessDatasetView
-from .views import ProcessDatasetView, RegisterView, UserProjectsView,  UserProfileView, ProjectDeleteView, TrainModelView
+from .views import ProcessDatasetView, RegisterView, UserProjectsView, UserProfileView, ProjectDeleteView, TrainModelView
 urlpatterns = [
     path('process/', ProcessDatasetView.as_view(), name='process-dataset'),
     path('register/', RegisterView.as_view(), name='register'),
