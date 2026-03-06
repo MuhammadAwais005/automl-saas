@@ -9,7 +9,6 @@ from django.conf import settings
 from django.contrib.auth.models import User
 import os
 
-from .engine import DataEngine
 from .models import Project, Profile
 from .serializers import UserSerializer, ProjectSerializer, ProfileSerializer
 
@@ -76,6 +75,7 @@ class ProcessDatasetView(APIView):
             full_file_path = os.path.join(settings.MEDIA_ROOT, file_path)
 
             # Run ML Engine
+            from .engine import DataEngine
             engine = DataEngine(full_file_path)
             result = engine.process()
 
@@ -138,6 +138,7 @@ class TrainModelView(APIView):
             full_path = os.path.join(settings.MEDIA_ROOT, clean_path)
 
             # Run training
+            from .engine import DataEngine
             engine = DataEngine(full_path)
             result = engine.train_model(target)
 
