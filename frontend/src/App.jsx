@@ -25,7 +25,7 @@ function App() {
   const handleTrainModel = async () => {
     setIsTraining(true);
     try {
-      const res = await axios.post('http://127.0.0.1:8000/api/train/', {
+      const res = await axios.post('https://automl-backend-z8zn.onrender.com/api/train/', {
         file_url: result.download_url,
         target: trainingTarget
       });
@@ -52,18 +52,18 @@ function App() {
   }, [token]);
 
   const fetchHistory = async () => {
-    try { const res = await axios.get('http://127.0.0.1:8000/api/projects/', { headers: { 'Authorization': `Bearer ${token}` } }); setHistory(res.data); } catch (err) { console.error(err); }
+    try { const res = await axios.get('https://automl-backend-z8zn.onrender.com/api/projects/', { headers: { 'Authorization': `Bearer ${token}` } }); setHistory(res.data); } catch (err) { console.error(err); }
   };
   const fetchProfile = async () => {
-    try { const res = await axios.get('http://127.0.0.1:8000/api/profile/', { headers: { 'Authorization': `Bearer ${token}` } }); setProfile({...res.data, newAvatarFile: null}); } catch (err) { console.error(err); }
+    try { const res = await axios.get('https://automl-backend-z8zn.onrender.com/api/profile/', { headers: { 'Authorization': `Bearer ${token}` } }); setProfile({...res.data, newAvatarFile: null}); } catch (err) { console.error(err); }
   };
 
   // --- ACTIONS ---
   const handleAuth = async (e) => {
     e.preventDefault(); setAuthLoading(true); setAuthError('');
     try {
-      if (!isLoginMode) await axios.post('http://127.0.0.1:8000/api/register/', { username, email, password });
-      const res = await axios.post('http://127.0.0.1:8000/api/token/', { username, password });
+      if (!isLoginMode) await axios.post('https://automl-backend-z8zn.onrender.com/api/register/', { username, email, password });
+      const res = await axios.post('https://automl-backend-z8zn.onrender.com/api/token/', { username, password });
       localStorage.setItem('access_token', res.data.access); setToken(res.data.access);
     } catch (err) { setAuthError('Authentication failed.'); } finally { setAuthLoading(false); }
   };
@@ -73,19 +73,19 @@ function App() {
     const formData = new FormData();
     formData.append('full_name', profile.full_name); formData.append('job_title', profile.job_title); formData.append('company', profile.company);
     if (profile.newAvatarFile) formData.append('avatar', profile.newAvatarFile);
-    try { await axios.patch('http://127.0.0.1:8000/api/profile/', formData, { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }); alert("Profile Updated!"); fetchProfile(); } catch (err) { alert("Failed."); }
+    try { await axios.patch('https://automl-backend-z8zn.onrender.com/api/profile/', formData, { headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }); alert("Profile Updated!"); fetchProfile(); } catch (err) { alert("Failed."); }
   };
 
   const handleDeleteProject = async (e, projectId) => {
     e.stopPropagation(); if (!confirm("Delete this project?")) return;
-    try { await axios.delete(`http://127.0.0.1:8000/api/projects/${projectId}/`, { headers: { 'Authorization': `Bearer ${token}` } }); setHistory(history.filter(h=>h.id!==projectId)); if(result?.id===projectId) setResult(null); } catch (err) { alert("Failed delete"); }
+    try { await axios.delete(`https://automl-backend-z8zn.onrender.com/api/projects/${projectId}/`, { headers: { 'Authorization': `Bearer ${token}` } }); setHistory(history.filter(h=>h.id!==projectId)); if(result?.id===projectId) setResult(null); } catch (err) { alert("Failed delete"); }
   };
 
   const handleUpload = async () => {
     if (!file) return; setIsLoading(true);
     const formData = new FormData(); formData.append('file', file);
     try {
-      const res = await axios.post('http://127.0.0.1:8000/api/process/', formData, { headers: { 'Authorization': `Bearer ${token}` } });
+      const res = await axios.post('https://automl-backend-z8zn.onrender.com/api/process/', formData, { headers: { 'Authorization': `Bearer ${token}` } });
       setResult(res.data); fetchHistory(); setActiveTab('visuals'); // Auto switch to visuals on complete
     } catch (err) { alert('Upload failed'); } finally { setIsLoading(false); }
   };
@@ -215,7 +215,7 @@ function App() {
                 <h2 className="text-3xl font-bold">Data Analytics</h2>
                 <p className="text-gray-400">Visual insights & AI Modeling</p>
               </div>
-              <a href={`http://127.0.0.1:8000${result.download_url}`} download className="px-6 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-bold flex items-center gap-2"><Download className="w-4 h-4" /> Download CSV</a>
+              <a href={`https://automl-backend-z8zn.onrender.com${result.download_url}`} download className="px-6 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-bold flex items-center gap-2"><Download className="w-4 h-4" /> Download CSV</a>
             </header>
 
             {/* --- NEW: AI MODEL TRAINING SECTION --- */}
@@ -255,7 +255,7 @@ function App() {
                            <h4 className="text-gray-400 text-sm uppercase tracking-widest mb-1">{trainingResult.type} Model</h4>
                            <div className="text-3xl font-bold text-white">{trainingResult.accuracy}% <span className="text-sm font-normal text-gray-400">{trainingResult.metric}</span></div>
                         </div>
-                        <a href={`http://127.0.0.1:8000${trainingResult.download_url}`} download className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-semibold flex items-center gap-2 border border-white/10">
+                        <a href={`https://automl-backend-z8zn.onrender.com${trainingResult.download_url}`} download className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-semibold flex items-center gap-2 border border-white/10">
                            <Download className="w-4 h-4" /> Download .pkl Model
                         </a>
                      </motion.div>
@@ -269,7 +269,7 @@ function App() {
                   <h3 className="font-bold mb-4 flex gap-2"><Activity className="text-blue-400" /> Correlation Heatmap</h3>
                   <div className="flex-1 flex items-center justify-center bg-black/20 rounded-xl overflow-hidden min-h-[300px]">
                     {result.heatmap_url ? (
-                       <img src={`http://127.0.0.1:8000${result.heatmap_url}`} alt="Heatmap" className="max-w-full max-h-[400px] object-contain" />
+                       <img src={`https://automl-backend-z8zn.onrender.com${result.heatmap_url}`} alt="Heatmap" className="max-w-full max-h-[400px] object-contain" />
                     ) : (
                        <p className="text-gray-500 text-sm">No numeric correlation data available.</p>
                     )}
