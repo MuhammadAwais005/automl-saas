@@ -3,7 +3,7 @@ import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Upload, CheckCircle, Download, Activity, Sparkles, User, 
-  LayoutDashboard, Clock, LogOut, Settings, Camera, Trash2, XCircle, BarChart3
+  LayoutDashboard, Clock, LogOut, Settings, Camera, Trash2, XCircle, BarChart3, Search // <--- Added Search Icon
 } from 'lucide-react';
 import { 
   RadialBarChart, RadialBar, PolarAngleAxis, ResponsiveContainer, 
@@ -16,36 +16,22 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 function App() {
   // --- STATE ---
   const [token, setToken] = useState(localStorage.getItem('access_token'));
-  const [activeTab, setActiveTab] = useState('dashboard'); 
+  const[activeTab, setActiveTab] = useState('dashboard'); 
   const [file, setFile] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
+  const [searchQuery, setSearchQuery] = useState(''); // <--- NEW: Search State
   const [trainingTarget, setTrainingTarget] = useState('');
   const [isTraining, setIsTraining] = useState(false);
-  const [trainingResult, setTrainingResult] = useState(null);
+  const[trainingResult, setTrainingResult] = useState(null);
 
-  const handleTrainModel = async () => {
-    setIsTraining(true);
-    try {
-      const res = await axios.post(`${API_URL}/api/train/`, {
-        file_url: result.download_url,
-        target: trainingTarget
-      });
-      setTrainingResult(res.data);
-    } catch (err) {
-      alert("Training failed. Ensure target column is valid.");
-    } finally {
-      setIsTraining(false);
-    }
-  };
-  
   // Profile & Auth State
   const [profile, setProfile] = useState({ full_name: '', job_title: '', company: '', avatar: null, username: '', newAvatarFile: null });
   const [isLoginMode, setIsLoginMode] = useState(true);
-  const [username, setUsername] = useState('');
+  const[username, setUsername] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const[password, setPassword] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState('');
 
@@ -57,18 +43,36 @@ function App() {
   const fetchHistory = async () => {
     try { const res = await axios.get(`${API_URL}/api/projects/`, { headers: { 'Authorization': `Bearer ${token}` } }); setHistory(res.data); } catch (err) { console.error(err); }
   };
+  
   const fetchProfile = async () => {
     try { const res = await axios.get(`${API_URL}/api/profile/`, { headers: { 'Authorization': `Bearer ${token}` } }); setProfile({...res.data, newAvatarFile: null}); } catch (err) { console.error(err); }
   };
 
   // --- ACTIONS ---
   const handleAuth = async (e) => {
-    e.preventDefault(); setAuthLoading(true); setAuthError('');
+    e.preventDefault(); 
+    setAuthLoading(true); 
+    setAuthError('');
+    
+    const safeUsername = username.trim().replace(/\s+/g, '_');
+    
     try {
-      if (!isLoginMode) await axios.post(`${API_URL}/api/register/`, { username, email, password });
-      const res = await axios.post(`${API_URL}/api/token/`, { username, password });
-      localStorage.setItem('access_token', res.data.access); setToken(res.data.access);
-    } catch (err) { setAuthError('Authentication failed.'); } finally { setAuthLoading(false); }
+      if (!isLoginMode) {
+        await axios.post(`${API_URL}/api/register/`, { username: safeUsername, email, password });
+      }
+      const res = await axios.post(`${API_URL}/api/token/`, { username: safeUsername, password });
+      localStorage.setItem('access_token', res.data.access); 
+      setToken(res.data.access);
+    } catch (err) { 
+      if (err.response && err.response.data) {
+        const errorMsg = Object.values(err.response.data).flat().join(' ');
+        setAuthError(errorMsg);
+      } else {
+        setAuthError('Authentication failed. Check your connection.');
+      }
+    } finally { 
+      setAuthLoading(false); 
+    }
   };
 
   const handleProfileUpdate = async (e) => {
@@ -89,20 +93,43 @@ function App() {
     const formData = new FormData(); formData.append('file', file);
     try {
       const res = await axios.post(`${API_URL}/api/process/`, formData, { headers: { 'Authorization': `Bearer ${token}` } });
-      setResult(res.data); fetchHistory(); setActiveTab('visuals'); // Auto switch to visuals on complete
+      setResult(res.data); fetchHistory(); setActiveTab('visuals');
     } catch (err) { alert('Upload failed'); } finally { setIsLoading(false); }
   };
 
+  const handleTrainModel = async () => {
+    setIsTraining(true);
+    try {
+      const res = await axios.post(`${API_URL}/api/train/`, {
+        file_url: result.download_url,
+        target: trainingTarget
+      });
+      setTrainingResult(res.data);
+    } catch (err) {
+      alert("Training failed. Ensure target column is valid.");
+    } finally {
+      setIsTraining(false);
+    }
+  };
+
   const loadHistoryItem = (p) => {
-    // Note: Old history items won't have heatmap/dist data saved in DB unless we add fields for them.
-    // For now, this works for new uploads. 
-    setResult({ ...p, download_url: p.processed_file.startsWith('/') ? p.processed_file : `/media/${p.processed_file}` });
+    setResult({ 
+      ...p, 
+      download_url: p.processed_file.startsWith('/') ? p.processed_file : `/media/${p.processed_file}`,
+      heatmap_url: p.heatmap_url 
+    });
     setFile(null); setActiveTab('visuals');
   };
 
+  // --- FILTER HISTORY ---
+  // NEW: Only show projects that match the search query!
+  const filteredHistory = history.filter(p => 
+    p.file_name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   // --- COMPONENTS ---
   const ScoreGauge = ({ score, label, color }) => {
-    const data = [{ name: 'Score', value: score, fill: color }];
+    const data =[{ name: 'Score', value: score, fill: color }];
     return (
       <div className="flex flex-col items-center justify-center relative w-32 h-32">
         <ResponsiveContainer width="100%" height="100%">
@@ -139,7 +166,7 @@ function App() {
       <motion.div initial={{ x: -50 }} animate={{ x: 0 }} className="w-80 bg-[#1e293b] border-r border-white/10 p-6 flex flex-col hidden md:flex shrink-0">
         <div className="flex items-center gap-3 mb-8 pb-8 border-b border-white/5 cursor-pointer hover:bg-white/5 p-2 rounded-xl transition" onClick={() => setActiveTab('profile')}>
           <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-blue-400 to-purple-500 border-2 border-white/20 shrink-0">
-            {profile.avatar ? <img src={profile.avatar} className="w-full h-full object-cover" /> : <div className="flex items-center justify-center h-full text-lg font-bold">{username[0]?.toUpperCase()}</div>}
+            {profile.avatar ? <img src={profile.avatar.startsWith('http') || profile.avatar.startsWith('blob') ? profile.avatar : `${API_URL}${profile.avatar}`} className="w-full h-full object-cover" /> : <div className="flex items-center justify-center h-full text-lg font-bold">{username[0]?.toUpperCase()}</div>}
           </div>
           <div className="overflow-hidden">
             <h3 className="font-bold text-sm truncate">{profile.full_name || username}</h3>
@@ -159,9 +186,27 @@ function App() {
               <User className="w-5 h-5" /> My Profile
             </button>
           </div>
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Recent Projects</h3>
+          
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Recent Projects</h3>
+          
+          {/* --- NEW: Search Bar UI --- */}
+          <div className="relative mb-4">
+            <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input 
+              type="text" 
+              placeholder="Search datasets..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-black/20 border border-white/10 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+            />
+          </div>
+
           <div className="space-y-2">
-            {history.length === 0 ? (<p className="text-xs text-gray-500 italic">No history yet.</p>) : history.map((p) => (
+            {filteredHistory.length === 0 ? (
+                <p className="text-xs text-gray-500 italic">
+                  {history.length === 0 ? "No history yet." : "No projects found."}
+                </p>
+            ) : filteredHistory.map((p) => (
               <div key={p.id} onClick={() => loadHistoryItem(p)} className="relative bg-white/5 hover:bg-white/10 p-3 rounded-xl border border-white/5 transition cursor-pointer group">
                 <div className="flex justify-between items-center mb-1 pr-6">
                   <h4 className="font-medium text-xs truncate text-gray-200 group-hover:text-blue-400">{p.file_name}</h4>
@@ -221,7 +266,7 @@ function App() {
               <a href={`${API_URL}${result.download_url}`} download className="px-6 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-bold flex items-center gap-2"><Download className="w-4 h-4" /> Download CSV</a>
             </header>
 
-            {/* --- NEW: AI MODEL TRAINING SECTION --- */}
+            {/* AI MODEL TRAINING SECTION */}
             <div className="bg-gradient-to-r from-blue-900/40 to-purple-900/40 border border-blue-500/30 rounded-3xl p-8 mb-8 relative overflow-hidden">
                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[80px]"></div>
                <div className="relative z-10">
@@ -290,7 +335,6 @@ function App() {
 
             {/* Bottom Row: Distributions & Report */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Distribution Charts */}
               <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-white/10 rounded-3xl p-6">
                 <h3 className="font-bold mb-6 flex gap-2"><BarChart3 className="text-purple-400" /> Feature Distributions</h3>
                 <div className="space-y-8">
@@ -316,7 +360,6 @@ function App() {
                 </div>
               </div>
 
-              {/* Text Report */}
               <div className="bg-[#1e293b]/50 backdrop-blur-xl border border-white/10 rounded-3xl p-6 overflow-y-auto max-h-[600px] custom-scrollbar">
                   <h3 className="font-bold mb-4 flex gap-2"><CheckCircle className="text-green-400" /> Processing Log</h3>
                   {result.report && result.report.length > 0 ? (
@@ -342,7 +385,7 @@ function App() {
              <form onSubmit={handleProfileUpdate} className="bg-[#1e293b]/50 backdrop-blur-xl border border-white/10 rounded-3xl p-8 space-y-6">
                <div className="flex items-center gap-6">
                  <div className="relative group w-24 h-24 rounded-full overflow-hidden bg-white/10 border-2 border-white/20 shrink-0">
-                    {profile.avatar ? <img src={profile.avatar} className="w-full h-full object-cover" /> : <User className="w-10 h-10 text-gray-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />}
+                    {profile.avatar ? <img src={profile.avatar.startsWith('http') || profile.avatar.startsWith('blob') ? profile.avatar : `${API_URL}${profile.avatar}`} className="w-full h-full object-cover" /> : <User className="w-10 h-10 text-gray-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />}
                     <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition cursor-pointer"><Camera className="w-6 h-6 text-white" /><input type="file" className="hidden" onChange={e => {if(e.target.files[0]) {setProfile({...profile, newAvatarFile: e.target.files[0], avatar: URL.createObjectURL(e.target.files[0])})}}} /></label>
                  </div>
                  <div><h3 className="font-bold text-xl">{username}</h3><p className="text-sm text-gray-400">Upload a professional photo</p></div>

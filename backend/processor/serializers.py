@@ -17,7 +17,7 @@ class UserSerializer(serializers.ModelSerializer):
 class ProjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
-        fields = ['id', 'file_name', 'initial_score', 'final_score', 'created_at', 'processed_file', 'report']
+        fields =['id', 'file_name', 'initial_score', 'final_score', 'created_at', 'processed_file', 'report', 'heatmap_url']
 
 # User Profile (Handles Image Upload)
 class ProfileSerializer(serializers.ModelSerializer):

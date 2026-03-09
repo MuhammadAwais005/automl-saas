@@ -81,15 +81,15 @@ class ProcessDatasetView(APIView):
 
             # Save project if logged in
             if request.user.is_authenticated:
-
                 Project.objects.create(
                     user=request.user,
                     file_name=file_obj.name,
                     original_file=file_path,
-                    processed_file=result.get("download_url", "").replace("/media/", ""),
-                    initial_score=result.get("initial_score"),
-                    final_score=result.get("final_score"),
-                    report=result.get("report", [])
+                    processed_file=result['download_url'].replace('/media/', ''),
+                    initial_score=result['initial_score'],
+                    final_score=result['final_score'],
+                    report=result['report'],
+                    heatmap_url=result['heatmap_url'] 
                 )
 
             return Response(result, status=status.HTTP_200_OK)
