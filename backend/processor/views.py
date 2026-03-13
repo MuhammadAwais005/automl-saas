@@ -52,6 +52,14 @@ class UserProjectsView(generics.ListAPIView):
 # -----------------------------
 class ProcessDatasetView(APIView):
 
+    # users should be able to POST files even if they're not logged in;
+    # `AllowAny` covers the permission check but DRF will still run the
+    # authentication classes by default and a bogus/empty JWT will raise a
+    # 401 before our view logic ever executes.  the client was sending
+    # `Authorization: Bearer null` when unauthenticated, which triggered the
+    # failure seen in the logs.  clearing the authentication_classes for the
+    # view prevents JWTAuthentication from running at all.
+    authentication_classes = []
     parser_classes = (MultiPartParser, FormParser)
     permission_classes = [AllowAny]
 
@@ -118,6 +126,10 @@ class ProjectDeleteView(generics.DestroyAPIView):
 # -----------------------------
 class TrainModelView(APIView):
 
+    # same reasoning as ProcessDatasetView – training can be done anonymously
+    # so we clear the authentication classes to avoid 401s caused by invalid
+    # tokens being present on the request.
+    authentication_classes = []
     permission_classes = [AllowAny]
 
     def post(self, request):
