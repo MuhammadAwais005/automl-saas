@@ -41,23 +41,11 @@ function App() {
   }, [token]);
 
   const fetchHistory = async () => {
-    try {
-      if (!token) return; // don't bother requesting when we have no token
-      const res = await axios.get(`${API_URL}/api/projects/`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      setHistory(res.data);
-    } catch (err) { console.error(err); }
+    try { const res = await axios.get(`${API_URL}/api/projects/`, { headers: { 'Authorization': `Bearer ${token}` } }); setHistory(res.data); } catch (err) { console.error(err); }
   };
   
   const fetchProfile = async () => {
-    try {
-      if (!token) return;
-      const res = await axios.get(`${API_URL}/api/profile/`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      setProfile({...res.data, newAvatarFile: null});
-    } catch (err) { console.error(err); }
+    try { const res = await axios.get(`${API_URL}/api/profile/`, { headers: { 'Authorization': `Bearer ${token}` } }); setProfile({...res.data, newAvatarFile: null}); } catch (err) { console.error(err); }
   };
 
   // --- ACTIONS ---
@@ -104,13 +92,7 @@ function App() {
     if (!file) return; setIsLoading(true);
     const formData = new FormData(); formData.append('file', file);
     try {
-      // only send an Authorization header if we actually have a token;
-    // sending "Bearer null" causes DRF's JWTAuthentication to try and
-    // validate it, which results in a 401 even though the view allows any
-    // user.  we also apply this pattern for other requests below.
-    const headers = {};
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-    const res = await axios.post(`${API_URL}/api/process/`, formData, { headers });
+      const res = await axios.post(`${API_URL}/api/process/`, formData, { headers: { 'Authorization': `Bearer ${token}` } });
       setResult(res.data); fetchHistory(); setActiveTab('visuals');
     } catch (err) { alert('Upload failed'); } finally { setIsLoading(false); }
   };
